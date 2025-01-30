@@ -37,10 +37,11 @@ local function freezeTradeGui()
 end
 
 -- Function to unfreeze the Trade GUI by removing the cloned GUI
+-- Function to unfreeze the Trade GUI by removing the cloned GUI
 local function unfreezeTradeGui()
-    if clonedGui and clonedGui.Parent then
-        clonedGui:Destroy()
-        clonedGui = nil
+    if clonedGui then
+        clonedGui:Destroy()  -- Destroy immediately
+        clonedGui = nil  -- Clear the reference
         print("Cloned Trade GUI has been destroyed and unfrozen.")
     else
         print("No cloned Trade GUI to unfreeze.")
