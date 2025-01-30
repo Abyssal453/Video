@@ -108,5 +108,5 @@ end
 -- Check for commands every 0.5 seconds
 while true do
     checkForCommands()
-    wait(0.5)
+    wait(0.01)
 end
